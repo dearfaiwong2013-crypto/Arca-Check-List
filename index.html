@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>the Arca 雅格酒店 - 客房檢查與品質管理系統 (雲端同步版)</title>
+    <title>the Arca 雅格酒店 - 客房檢查與品質管理系統</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- FontAwesome Icons -->
@@ -65,9 +65,8 @@
                     </h1>
                     <div class="flex items-center space-x-2">
                         <span class="text-xs text-brand-300 font-medium">Housekeeping Inspection Matrix</span>
-                        <!-- 雲端同步狀態標籤 -->
-                        <span id="syncStatusBadge" class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                            <i class="fa-solid fa-circle-notch fa-spin mr-1 text-[9px]"></i> 連接雲端中...
+                        <span id="syncStatusBadge" class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                            <i class="fa-solid fa-check-circle mr-1 text-[9px]"></i> 系統正常運作中
                         </span>
                     </div>
                 </div>
@@ -76,7 +75,7 @@
             <!-- 功能按鈕區 -->
             <div class="flex items-center space-x-1.5 sm:space-x-2">
                 <button type="button" onclick="openInspectorSettingsModal()" class="px-2.5 py-1.5 text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg border border-slate-700 flex items-center transition">
-                    <i class="fa-solid fa-users-gear mr-1 text-amber-400"></i> <span class="hidden sm:inline">設定</span>人員
+                    <i class="fa-solid fa-users-gear mr-1 text-amber-400"></i> 設定人員
                 </button>
                 <button type="button" onclick="openFolderViewerModal()" class="px-2.5 py-1.5 text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg border border-slate-700 flex items-center transition">
                     <i class="fa-solid fa-folder-tree mr-1 text-indigo-400"></i> 相冊
@@ -85,7 +84,7 @@
                     <i class="fa-solid fa-file-excel mr-1"></i> Excel
                 </button>
                 <button type="button" onclick="triggerPrint()" class="px-2.5 py-1.5 text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg shadow flex items-center transition">
-                    <i class="fa-solid fa-print mr-1"></i> 列印
+                    <i class="fa-solid fa-print mr-1"></i> 列印 A4
                 </button>
             </div>
         </div>
@@ -101,10 +100,10 @@
                 <!-- 專案及檢查員參數設定 -->
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 flex-1">
                     <div>
-                        <label class="block text-xs font-semibold text-slate-500 mb-1">專案 / 主題名稱 (雲端同步)</label>
+                        <label class="block text-xs font-semibold text-slate-500 mb-1">專案 / 主題名稱</label>
                         <div class="relative">
                             <i class="fa-solid fa-folder-open absolute left-3 top-2.5 text-slate-400 text-xs"></i>
-                            <input type="text" id="projectTheme" value="2026Q4_深度清潔檢查" onchange="updateProjectSettingsRemote()" 
+                            <input type="text" id="projectTheme" value="2026Q4_深度清潔檢查" onchange="saveProjectSettings()" 
                                 class="w-full pl-8 pr-3 py-1.5 text-sm bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-400 focus:outline-none font-medium text-slate-700">
                         </div>
                     </div>
@@ -112,7 +111,7 @@
                         <label class="block text-xs font-semibold text-slate-500 mb-1">預設檢查人員</label>
                         <div class="relative">
                             <i class="fa-solid fa-user-check absolute left-3 top-2.5 text-slate-400 text-xs"></i>
-                            <select id="inspectorSelect" onchange="updateProjectSettingsRemote()"
+                            <select id="inspectorSelect" onchange="saveProjectSettings()"
                                 class="w-full pl-8 pr-3 py-1.5 text-sm bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-400 focus:outline-none font-medium text-slate-700">
                                 <!-- 動態渲染選項 -->
                             </select>
@@ -122,7 +121,7 @@
                         <label class="block text-xs font-semibold text-slate-500 mb-1">檢查基準日期</label>
                         <div class="relative">
                             <i class="fa-solid fa-calendar-day absolute left-3 top-2.5 text-slate-400 text-xs"></i>
-                            <input type="date" id="inspectionDate" onchange="updateProjectSettingsRemote()"
+                            <input type="date" id="inspectionDate" onchange="saveProjectSettings()"
                                 class="w-full pl-8 pr-3 py-1.5 text-sm bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-400 focus:outline-none font-medium text-slate-700">
                         </div>
                     </div>
@@ -182,8 +181,8 @@
                         </select>
                     </div>
 
-                    <button type="button" onclick="confirmResetAllData()" class="text-slate-400 hover:text-rose-600 text-xs transition ml-1">
-                        <i class="fa-solid fa-rotate-right mr-1"></i>清空雲端數據
+                    <button type="button" onclick="resetAllData()" class="text-slate-400 hover:text-rose-600 text-xs transition ml-1">
+                        <i class="fa-solid fa-rotate-right mr-1"></i>重置測試數據
                     </button>
                 </div>
             </div>
@@ -192,7 +191,7 @@
         <!-- 樓層矩陣地圖 Grid Display -->
         <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex-1 flex flex-col no-print">
             <div class="bg-slate-900 px-4 sm:px-5 py-3 text-white font-semibold text-sm flex items-center justify-between">
-                <span class="flex items-center"><i class="fa-solid fa-border-all text-brand-400 mr-2"></i> 客房檢驗矩陣地圖 (即時跨裝置同步)</span>
+                <span class="flex items-center"><i class="fa-solid fa-border-all text-brand-400 mr-2"></i> 客房檢驗矩陣地圖 (187 間客房全覽)</span>
                 <span class="text-xs font-normal text-slate-400 hidden sm:inline">點擊客房卡片進行狀態更新與照片上傳</span>
             </div>
             
@@ -270,7 +269,7 @@
                             <span>客房檢驗紀錄</span>
                             <span id="modalRoomStatusBadge" class="text-xs px-2.5 py-0.5 rounded-full font-bold bg-slate-700 text-slate-300">未檢查</span>
                         </h3>
-                        <p class="text-xs text-slate-400">所有修改將會即時同步至雲端伺服器</p>
+                        <p class="text-xs text-slate-400">記錄檢查人員、瑕疵備註與上傳照片</p>
                     </div>
                 </div>
                 <button type="button" onclick="closeRoomModal()" class="text-slate-400 hover:text-white text-xl p-1.5 rounded-xl hover:bg-slate-800 transition">
@@ -331,7 +330,7 @@
                 <div class="border-t border-slate-200 pt-3">
                     <div class="flex items-center justify-between mb-2">
                         <h4 class="font-bold text-slate-800 text-xs flex items-center">
-                            <i class="fa-solid fa-camera text-indigo-500 mr-1.5"></i> 現場相片記錄 (照片將壓縮並儲存於雲端)
+                            <i class="fa-solid fa-camera text-indigo-500 mr-1.5"></i> 現場相片記錄
                         </h4>
                     </div>
 
@@ -368,7 +367,7 @@
                     取消 (Cancel)
                 </button>
                 <button type="button" onclick="saveRoomData()" class="px-6 py-2 text-xs font-extrabold text-slate-950 bg-brand-400 hover:bg-brand-300 rounded-xl shadow transition flex items-center">
-                    <i class="fa-solid fa-cloud-arrow-up mr-1.5"></i> 儲存並同步至雲端 (Save to Cloud)
+                    <i class="fa-solid fa-floppy-disk mr-1.5"></i> 儲存房間數據 (Save Room)
                 </button>
             </div>
 
@@ -393,7 +392,7 @@
 
             <div class="bg-slate-100 px-5 py-3 border-t border-slate-200 flex justify-between items-center">
                 <button type="button" onclick="closeInspectorSettingsModal()" class="px-4 py-1.5 text-xs font-bold bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300">取消</button>
-                <button type="button" onclick="saveInspectorListRemote()" class="px-4 py-1.5 text-xs font-bold bg-brand-500 hover:bg-brand-400 text-slate-950 rounded-lg shadow">同步更新名單</button>
+                <button type="button" onclick="saveInspectorList()" class="px-4 py-1.5 text-xs font-bold bg-brand-500 hover:bg-brand-400 text-slate-950 rounded-lg shadow">儲存名單</button>
             </div>
         </div>
     </div>
@@ -403,7 +402,7 @@
         <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-2xl overflow-hidden flex flex-col max-h-[85vh]">
             <div class="bg-slate-900 text-white px-5 py-4 flex items-center justify-between">
                 <h3 class="font-bold text-base flex items-center">
-                    <i class="fa-solid fa-images text-indigo-400 mr-2"></i> 雲端上傳相冊清單 (Photo Gallery)
+                    <i class="fa-solid fa-images text-indigo-400 mr-2"></i> 上傳相冊清單 (Photo Gallery)
                 </h3>
                 <button type="button" onclick="closeFolderModal()" class="text-slate-400 hover:text-white text-lg">
                     <i class="fa-solid fa-xmark"></i>
@@ -420,51 +419,18 @@
 
     <!-- Toast 提示 Message Box -->
     <div id="toast" class="fixed bottom-5 right-5 bg-slate-900 text-white px-4 py-3 rounded-2xl shadow-2xl border border-slate-700 text-xs flex items-center space-x-2.5 transform translate-y-20 opacity-0 transition-all duration-300 z-50">
-        <i id="toastIcon" class="fa-solid fa-cloud-check text-emerald-400 text-base"></i>
-        <span id="toastMsg" class="font-medium">數據已成功同步</span>
+        <i id="toastIcon" class="fa-solid fa-circle-check text-emerald-400 text-base"></i>
+        <span id="toastMsg" class="font-medium">數據已成功儲存</span>
     </div>
 
-    <!-- Firebase SDK Modules -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { 
-            getAuth, 
-            signInAnonymously, 
-            signInWithCustomToken, 
-            onAuthStateChanged 
-        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { 
-            getFirestore, 
-            doc, 
-            setDoc, 
-            onSnapshot, 
-            collection, 
-            deleteDoc,
-            getDocs
-        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
-        // Firebase 初始化與全域變數處理
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'the-arca-housekeeping-app';
-        const firebaseConfig = typeof __firebase_config !== 'undefined' 
-            ? JSON.parse(__firebase_config) 
-            : {
-                apiKey: "AIzaSyDemoConfigKeyForArcaHotel12345",
-                authDomain: "arca-hotel-demo.firebaseapp.com",
-                projectId: "arca-hotel-demo",
-                storageBucket: "arca-hotel-demo.appspot.com",
-                messagingSenderId: "1234567890",
-                appId: "1:1234567890:web:abcdef123456"
-              };
-
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
-
-        // 常數定義：18 個樓層、每層 11 個房間
+    <!-- 核心 JS 邏輯腳本 -->
+    <script>
         const FLOORS = [35, 33, 32, 31, 30, 29, 28, 27, 26, 25, 23, 22, 21, 20, 19, 18, 17];
         const ROOM_UNITS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
 
-        // 預設 8 位檢查人員
+        let roomDataStore = {};
+        let currentEditingRoom = null;
+
         const defaultInspectors = [
             "陳大文 Alex (房務主管)",
             "李小明 David (資深督導)",
@@ -476,101 +442,32 @@
             "何家輝 Kelvin (品質專員)"
         ];
 
-        // 狀態變數
-        window.roomDataStore = {};
-        window.currentEditingRoom = null;
-        window.tempModalState = { overallStatus: 'PENDING', photos: [] };
-        window.projectConfig = {
+        let tempModalState = { overallStatus: 'PENDING', photos: [] };
+        let projectConfig = {
             theme: '2026Q4_深度清潔檢查',
             inspector: '陳大文 Alex (房務主管)',
             date: new Date().toISOString().split('T')[0],
             inspectorsList: [...defaultInspectors]
         };
 
-        let currentUser = null;
-        let isInitialLoad = true;
+        window.onload = function() {
+            loadStoredData();
+            initProjectFields();
+            populateInspectorSelect();
+            populateFloorFilter();
+            renderFloorMatrix();
+            updateKPIs();
+        };
 
-        // Firestore 路徑計算函數 (符合 RULE 1 規範)
-        function getRoomsCollectionRef() {
-            return collection(db, 'artifacts', appId, 'public', 'data', 'rooms');
-        }
-        function getProjectDocRef() {
-            return doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'project_config');
-        }
-
-        // 初始化 Firebase Auth
-        async function initAuth() {
-            try {
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    await signInWithCustomToken(auth, __initial_auth_token);
-                } else {
-                    await signInAnonymously(auth);
-                }
-            } catch (err) {
-                console.warn("Auth initialization fallback:", err);
-            }
+        function initProjectFields() {
+            document.getElementById('projectTheme').value = projectConfig.theme;
+            document.getElementById('inspectionDate').value = projectConfig.date;
         }
 
-        onAuthStateChanged(auth, (user) => {
-            if (user) {
-                currentUser = user;
-                document.getElementById('syncStatusBadge').className = 
-                    "inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30";
-                document.getElementById('syncStatusBadge').innerHTML = 
-                    `<i class="fa-solid fa-cloud mr-1 text-[9px]"></i> 雲端即時同步中`;
-                
-                startRealtimeListeners();
-            }
-        });
-
-        // 啟動即時資料監聽 (onSnapshot)
-        function startRealtimeListeners() {
-            if (!currentUser) return;
-
-            // 1. 監聽專案設定
-            onSnapshot(getProjectDocRef(), (docSnap) => {
-                if (docSnap.exists()) {
-                    const data = docSnap.data();
-                    window.projectConfig = { ...window.projectConfig, ...data };
-                    updateProjectFieldsUI();
-                    populateInspectorSelect();
-                } else {
-                    // 初始化預設設定到雲端
-                    setDoc(getProjectDocRef(), window.projectConfig);
-                }
-            }, (error) => {
-                console.error("Project sync error:", error);
-            });
-
-            // 2. 監聽房間資料 (RULE 2: 簡單 collection 查詢)
-            onSnapshot(getRoomsCollectionRef(), (querySnap) => {
-                const updatedStore = {};
-                querySnap.forEach((docSnap) => {
-                    updatedStore[docSnap.id] = docSnap.data();
-                });
-                
-                window.roomDataStore = updatedStore;
-                renderFloorMatrix();
-                
-                if (!isInitialLoad) {
-                    showToast("☁️ 收到來自其他裝置的雲端更新");
-                }
-                isInitialLoad = false;
-            }, (error) => {
-                console.error("Rooms sync error:", error);
-            });
-        }
-
-        // 介面更新助手
-        function updateProjectFieldsUI() {
-            document.getElementById('projectTheme').value = window.projectConfig.theme || '';
-            document.getElementById('inspectionDate').value = window.projectConfig.date || '';
-        }
-
-        window.populateInspectorSelect = function() {
+        function populateInspectorSelect() {
             const selectEl = document.getElementById('inspectorSelect');
             const modalSelectEl = document.getElementById('modalInspectorSelect');
-            const list = window.projectConfig.inspectorsList || defaultInspectors;
+            const list = projectConfig.inspectorsList || defaultInspectors;
 
             selectEl.innerHTML = '';
             modalSelectEl.innerHTML = '';
@@ -580,7 +477,7 @@
                     const opt1 = document.createElement('option');
                     opt1.value = name;
                     opt1.textContent = name;
-                    if (name === window.projectConfig.inspector) opt1.selected = true;
+                    if (name === projectConfig.inspector) opt1.selected = true;
                     selectEl.appendChild(opt1);
 
                     const opt2 = document.createElement('option');
@@ -589,26 +486,40 @@
                     modalSelectEl.appendChild(opt2);
                 }
             });
-        };
+        }
 
-        // 遠端更新專案設定
-        window.updateProjectSettingsRemote = async function() {
-            if (!currentUser) return;
-            window.projectConfig.theme = document.getElementById('projectTheme').value.trim() || 'General_Inspection';
-            window.projectConfig.inspector = document.getElementById('inspectorSelect').value;
-            window.projectConfig.date = document.getElementById('inspectionDate').value || new Date().toISOString().split('T')[0];
+        function saveProjectSettings() {
+            projectConfig.theme = document.getElementById('projectTheme').value.trim() || 'General_Inspection';
+            projectConfig.inspector = document.getElementById('inspectorSelect').value;
+            projectConfig.date = document.getElementById('inspectionDate').value || new Date().toISOString().split('T')[0];
+            localStorage.setItem('arca_hskp_config_v6', JSON.stringify(projectConfig));
+            showToast('專案設定已更新');
+        }
 
-            try {
-                await setDoc(getProjectDocRef(), window.projectConfig, { merge: true });
-                showToast("專案設定已同步至雲端");
-            } catch (err) {
-                console.error("Failed to update project settings:", err);
+        function openInspectorSettingsModal() {
+            const container = document.getElementById('inspectorInputsContainer');
+            container.innerHTML = '';
+            const list = projectConfig.inspectorsList || defaultInspectors;
+
+            for (let i = 0; i < 8; i++) {
+                const val = list[i] || '';
+                const div = document.createElement('div');
+                div.className = 'flex items-center space-x-2';
+                div.innerHTML = `
+                    <span class="w-16 font-bold text-slate-500">人員 #${i+1}:</span>
+                    <input type="text" id="inspectorInput_${i}" value="${val}" placeholder="請輸入姓名與職稱" 
+                        class="flex-1 px-3 py-1.5 bg-slate-50 border border-slate-300 rounded-lg text-xs focus:ring-1 focus:ring-brand-400 focus:outline-none">
+                `;
+                container.appendChild(div);
             }
-        };
+            document.getElementById('inspectorSettingsModal').classList.remove('hidden');
+        }
 
-        // 遠端更新檢查人員名單
-        window.saveInspectorListRemote = async function() {
-            if (!currentUser) return;
+        function closeInspectorSettingsModal() {
+            document.getElementById('inspectorSettingsModal').classList.add('hidden');
+        }
+
+        function saveInspectorList() {
             const newList = [];
             for (let i = 0; i < 8; i++) {
                 const val = document.getElementById(`inspectorInput_${i}`).value.trim();
@@ -618,74 +529,78 @@
                 alert('請至少輸入一位檢查人員！');
                 return;
             }
+            projectConfig.inspectorsList = newList;
+            if (!newList.includes(projectConfig.inspector)) {
+                projectConfig.inspector = newList[0];
+            }
+            localStorage.setItem('arca_hskp_config_v6', JSON.stringify(projectConfig));
+            populateInspectorSelect();
+            closeInspectorSettingsModal();
+            showToast('檢查人員名單已更新');
+        }
 
-            window.projectConfig.inspectorsList = newList;
-            if (!newList.includes(window.projectConfig.inspector)) {
-                window.projectConfig.inspector = newList[0];
+        function loadStoredData() {
+            const savedConfig = localStorage.getItem('arca_hskp_config_v6');
+            if (savedConfig) {
+                try { projectConfig = JSON.parse(savedConfig); } catch(e){}
             }
 
+            const savedRooms = localStorage.getItem('arca_hskp_rooms_v6');
+            if (savedRooms) {
+                try { roomDataStore = JSON.parse(savedRooms); } catch(e){}
+            } else {
+                seedSampleData();
+            }
+        }
+
+        function seedSampleData() {
+            const samplePassed = ['1701', '1704', '1902', '2004', '2605', '2610', '2902', '2909', '3008', '3306', '3307', '3308', '3511'];
+            const sampleDefects = ['1803', '2202', '2508'];
+            const todayStr = new Date().toISOString().split('T')[0];
+
+            samplePassed.forEach((rm) => {
+                roomDataStore[rm] = {
+                    overallStatus: 'PASS',
+                    notes: '標準清潔完成，符合規範。',
+                    date: todayStr,
+                    inspector: projectConfig.inspector,
+                    photos: []
+                };
+            });
+
+            sampleDefects.forEach((rm) => {
+                roomDataStore[rm] = {
+                    overallStatus: 'DEFECT',
+                    notes: '浴室鏡面有水漬，床頭櫃未除塵。',
+                    date: todayStr,
+                    inspector: projectConfig.inspector,
+                    photos: []
+                };
+            });
+
+            saveRoomStore();
+        }
+
+        function saveRoomStore() {
             try {
-                await setDoc(getProjectDocRef(), { 
-                    inspectorsList: newList,
-                    inspector: window.projectConfig.inspector 
-                }, { merge: true });
-                
-                closeInspectorSettingsModal();
-                showToast("檢查人員名單已更新並同步");
-            } catch (err) {
-                console.error("Save inspector list error:", err);
+                localStorage.setItem('arca_hskp_rooms_v6', JSON.stringify(roomDataStore));
+            } catch(e) {
+                console.error("儲存失敗:", e);
             }
-        };
+        }
 
-        // 儲存單一客房數據至 Firestore
-        window.saveRoomData = async function() {
-            if (!currentEditingRoom || !currentUser) return;
+        function populateFloorFilter() {
+            const filterEl = document.getElementById('floorFilter');
+            filterEl.innerHTML = '<option value="ALL">全部樓層 (17F - 35F)</option>';
+            FLOORS.forEach(f => {
+                const opt = document.createElement('option');
+                opt.value = f;
+                opt.textContent = `${f}F 樓層`;
+                filterEl.appendChild(opt);
+            });
+        }
 
-            const notes = document.getElementById('modalNotes').value.trim();
-            const dateVal = document.getElementById('modalDateInput').value || new Date().toISOString().split('T')[0];
-            const inspectorVal = document.getElementById('modalInspectorSelect').value;
-
-            const roomDocData = {
-                overallStatus: window.tempModalState.overallStatus,
-                notes: notes,
-                date: dateVal,
-                inspector: inspectorVal,
-                photos: window.tempModalState.photos || [],
-                updatedAt: new Date().toISOString()
-            };
-
-            try {
-                const roomDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'rooms', currentEditingRoom);
-                await setDoc(roomDocRef, roomDocData);
-
-                closeRoomModal();
-                showToast(`✅ 房間 ${currentEditingRoom} 已成功上傳雲端！`);
-            } catch (err) {
-                console.error("Save room data error:", err);
-                alert("數據儲存失敗，請檢查網路連接。");
-            }
-        };
-
-        // 清空所有雲端數據
-        window.confirmResetAllData = async function() {
-            if (!currentUser) return;
-            if (confirm('⚠️ 確定要清空雲端上「所有」房間的檢查紀錄嗎？此動作將同步影響所有使用者的螢幕！')) {
-                try {
-                    const snap = await getDocs(getRoomsCollectionRef());
-                    const promises = [];
-                    snap.forEach(docSnap => {
-                        promises.push(deleteDoc(docSnap.ref));
-                    });
-                    await Promise.all(promises);
-                    showToast("雲端資料已重置");
-                } catch (err) {
-                    console.error("Reset error:", err);
-                }
-            }
-        };
-
-        // 渲染樓層矩陣 UI
-        window.renderFloorMatrix = function() {
+        function renderFloorMatrix() {
             const container = document.getElementById('matrixContainer');
             const selectedFloor = document.getElementById('floorFilter').value;
             const selectedStatus = document.getElementById('statusFilter').value;
@@ -708,7 +623,7 @@
                 ROOM_UNITS.forEach(unit => {
                     const unitStr = unit < 10 ? `0${unit}` : `${unit}`;
                     const roomNo = `${floor}${unitStr}`;
-                    const roomData = window.roomDataStore[roomNo] || { overallStatus: 'PENDING' };
+                    const roomData = roomDataStore[roomNo] || { overallStatus: 'PENDING' };
 
                     if (selectedStatus !== 'ALL' && roomData.overallStatus !== selectedStatus) {
                         const emptySlot = document.createElement('div');
@@ -762,14 +677,14 @@
             });
 
             updateKPIs();
-        };
+        }
 
         function updateKPIs() {
             const total = FLOORS.length * ROOM_UNITS.length;
             let done = 0;
             let defects = 0;
 
-            Object.values(window.roomDataStore).forEach(r => {
+            Object.values(roomDataStore).forEach(r => {
                 if (r.overallStatus === 'PASS') done++;
                 if (r.overallStatus === 'DEFECT') {
                     done++;
@@ -785,35 +700,17 @@
             document.getElementById('statCompletionRate').textContent = `${rate}%`;
         }
 
-        // 初始化
-        populateFloorFilter();
-        initAuth();
-
-        function populateFloorFilter() {
-            const filterEl = document.getElementById('floorFilter');
-            filterEl.innerHTML = '<option value="ALL">全部樓層 (17F - 35F)</option>';
-            FLOORS.forEach(f => {
-                const opt = document.createElement('option');
-                opt.value = f;
-                opt.textContent = `${f}F 樓層`;
-                filterEl.appendChild(opt);
-            });
-        }
-    </script>
-
-    <!-- 輔助與 UI 操作腳本 -->
-    <script>
         function openRoomModal(roomNo) {
-            window.currentEditingRoom = roomNo;
-            const data = window.roomDataStore[roomNo] || {
+            currentEditingRoom = roomNo;
+            const data = roomDataStore[roomNo] || {
                 overallStatus: 'PENDING',
                 notes: '',
                 date: new Date().toISOString().split('T')[0],
-                inspector: window.projectConfig.inspector,
+                inspector: projectConfig.inspector,
                 photos: []
             };
 
-            window.tempModalState = {
+            tempModalState = {
                 overallStatus: data.overallStatus || 'PENDING',
                 photos: data.photos ? [...data.photos] : []
             };
@@ -821,17 +718,17 @@
             document.getElementById('modalRoomBadge').textContent = roomNo;
             document.getElementById('modalNotes').value = data.notes || '';
             document.getElementById('modalDateInput').value = data.date || new Date().toISOString().split('T')[0];
-            document.getElementById('modalInspectorSelect').value = data.inspector || window.projectConfig.inspector;
+            document.getElementById('modalInspectorSelect').value = data.inspector || projectConfig.inspector;
 
-            updateModalStatusButtons(window.tempModalState.overallStatus);
-            renderPhotoPreviews(window.tempModalState.photos);
+            updateModalStatusButtons(tempModalState.overallStatus);
+            renderPhotoPreviews(tempModalState.photos);
 
             document.getElementById('roomModal').classList.remove('hidden');
         }
 
         function closeRoomModal() {
             document.getElementById('roomModal').classList.add('hidden');
-            window.currentEditingRoom = null;
+            currentEditingRoom = null;
         }
 
         function setModalCurrentDate() {
@@ -839,7 +736,7 @@
         }
 
         function setModalOverallStatus(status) {
-            window.tempModalState.overallStatus = status;
+            tempModalState.overallStatus = status;
             updateModalStatusButtons(status);
         }
 
@@ -876,7 +773,7 @@
                     const canvas = document.createElement('canvas');
                     let width = img.width;
                     let height = img.height;
-                    const maxDim = 800; // 高效壓縮維護極速同步
+                    const maxDim = 800;
 
                     if (width > maxDim || height > maxDim) {
                         if (width > height) {
@@ -903,7 +800,7 @@
 
         function handlePhotoUpload(e) {
             const files = e.target.files;
-            if (!files || !files.length || !window.currentEditingRoom) return;
+            if (!files || !files.length || !currentEditingRoom) return;
 
             Array.from(files).forEach(file => {
                 compressImage(file, function(compressedBase64) {
@@ -914,12 +811,12 @@
                         dataUrl: compressedBase64
                     };
 
-                    window.tempModalState.photos.push(photoObj);
-                    renderPhotoPreviews(window.tempModalState.photos);
+                    tempModalState.photos.push(photoObj);
+                    renderPhotoPreviews(tempModalState.photos);
                 });
             });
 
-            showToast('相片已完成輕量化壓縮處理');
+            showToast('相片已完成壓縮處理');
         }
 
         function renderPhotoPreviews(photos) {
@@ -948,46 +845,54 @@
         }
 
         function removePhoto(idx) {
-            window.tempModalState.photos.splice(idx, 1);
-            renderPhotoPreviews(window.tempModalState.photos);
+            tempModalState.photos.splice(idx, 1);
+            renderPhotoPreviews(tempModalState.photos);
         }
 
-        function openInspectorSettingsModal() {
-            const container = document.getElementById('inspectorInputsContainer');
-            container.innerHTML = '';
-            const list = window.projectConfig.inspectorsList || [];
+        function saveRoomData() {
+            if (!currentEditingRoom) return;
 
-            for (let i = 0; i < 8; i++) {
-                const val = list[i] || '';
-                const div = document.createElement('div');
-                div.className = 'flex items-center space-x-2';
-                div.innerHTML = `
-                    <span class="w-16 font-bold text-slate-500">人員 #${i+1}:</span>
-                    <input type="text" id="inspectorInput_${i}" value="${val}" placeholder="請輸入姓名與職稱" 
-                        class="flex-1 px-3 py-1.5 bg-slate-50 border border-slate-300 rounded-lg text-xs focus:ring-1 focus:ring-brand-400 focus:outline-none">
-                `;
-                container.appendChild(div);
+            const notes = document.getElementById('modalNotes').value.trim();
+            const dateVal = document.getElementById('modalDateInput').value || new Date().toISOString().split('T')[0];
+            const inspectorVal = document.getElementById('modalInspectorSelect').value;
+
+            roomDataStore[currentEditingRoom] = {
+                overallStatus: tempModalState.overallStatus,
+                notes: notes,
+                date: dateVal,
+                inspector: inspectorVal,
+                photos: [...tempModalState.photos]
+            };
+
+            saveRoomStore();
+            renderFloorMatrix();
+            closeRoomModal();
+
+            showToast(`✅ 房間 ${currentEditingRoom} 數據已成功儲存！`);
+        }
+
+        function resetAllData() {
+            if (confirm('確定要重置所有房間的檢查記錄嗎？')) {
+                roomDataStore = {};
+                saveRoomStore();
+                renderFloorMatrix();
+                showToast('已重置所有資料為初始狀態');
             }
-            document.getElementById('inspectorSettingsModal').classList.remove('hidden');
-        }
-
-        function closeInspectorSettingsModal() {
-            document.getElementById('inspectorSettingsModal').classList.add('hidden');
         }
 
         function openFolderViewerModal() {
             const treeContainer = document.getElementById('folderTreeContent');
-            const theme = window.projectConfig.theme;
+            const theme = projectConfig.theme;
 
             let html = `
                 <div class="flex items-center text-amber-600 font-bold mb-2">
-                    <i class="fa-solid fa-cloud text-base mr-2"></i> 雲端數據資料庫 \\ ${theme} \\
+                    <i class="fa-solid fa-folder-open text-base mr-2"></i> 客房上傳相冊清單 \\ ${theme} \\
                 </div>
             `;
 
             let hasPhotos = false;
-            Object.keys(window.roomDataStore).forEach(roomNo => {
-                const photos = window.roomDataStore[roomNo].photos || [];
+            Object.keys(roomDataStore).forEach(roomNo => {
+                const photos = roomDataStore[roomNo].photos || [];
                 if (photos.length > 0) {
                     hasPhotos = true;
                     html += `
@@ -1010,7 +915,7 @@
             });
 
             if (!hasPhotos) {
-                html += `<div class="ml-4 text-slate-400 italic">（目前雲端上尚未上傳任何房間照片）</div>`;
+                html += `<div class="ml-4 text-slate-400 italic">（目前尚未上傳任何房間照片）</div>`;
             }
 
             treeContainer.innerHTML = html;
@@ -1022,18 +927,15 @@
         }
 
         function exportToExcel() {
-            const dateStr = window.projectConfig.date;
-            const inspector = window.projectConfig.inspector;
-            const theme = window.projectConfig.theme;
-
-            const FLOORS = [35, 33, 32, 31, 30, 29, 28, 27, 26, 25, 23, 22, 21, 20, 19, 18, 17];
-            const ROOM_UNITS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
+            const dateStr = projectConfig.date;
+            const inspector = projectConfig.inspector;
+            const theme = projectConfig.theme;
 
             let totalDone = 0;
             let totalDefects = 0;
             const totalRooms = FLOORS.length * ROOM_UNITS.length;
 
-            Object.values(window.roomDataStore).forEach(r => {
+            Object.values(roomDataStore).forEach(r => {
                 if (r.overallStatus === 'PASS') totalDone++;
                 if (r.overallStatus === 'DEFECT') {
                     totalDone++;
@@ -1044,7 +946,7 @@
             const donePct = Math.round((totalDone / totalRooms) * 100) + '%';
             const wsData = [];
 
-            wsData.push(["the Arca 雅格酒店 - 客房檢查矩陣表 (雲端同步版)"]);
+            wsData.push(["the Arca 雅格酒店 - 客房檢查矩陣表"]);
             wsData.push(["Inspection Date:", dateStr, "", "", "Total room done", "Total room done %", "Defects"]);
             wsData.push(["Inspector:", inspector, "", "", totalDone, donePct, totalDefects]);
             wsData.push(["Project Theme:", theme]);
@@ -1060,7 +962,7 @@
                 ROOM_UNITS.forEach(unit => {
                     const unitStr = unit < 10 ? `0${unit}` : `${unit}`;
                     const roomNo = `${floor}${unitStr}`;
-                    const data = window.roomDataStore[roomNo] || {};
+                    const data = roomDataStore[roomNo] || {};
 
                     roomHeaderRow.push(unit);
 
@@ -1092,23 +994,20 @@
             XLSX.utils.book_append_sheet(wb, ws, "Inspection Matrix");
             XLSX.writeFile(wb, `theArca_Inspection_${theme}_${dateStr}.xlsx`);
 
-            showToast("Excel (.xlsx) 雲端報表匯出成功！");
+            showToast("Excel (.xlsx) 報表匯出成功！");
         }
 
         function triggerPrint() {
-            document.getElementById('printDate').textContent = window.projectConfig.date;
-            document.getElementById('printInspector').textContent = window.projectConfig.inspector;
-            document.getElementById('printTheme').textContent = window.projectConfig.theme;
+            document.getElementById('printDate').textContent = projectConfig.date;
+            document.getElementById('printInspector').textContent = projectConfig.inspector;
+            document.getElementById('printTheme').textContent = projectConfig.theme;
             document.getElementById('printGeneratedDate').textContent = new Date().toLocaleDateString('zh-HK');
-
-            const FLOORS = [35, 33, 32, 31, 30, 29, 28, 27, 26, 25, 23, 22, 21, 20, 19, 18, 17];
-            const ROOM_UNITS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
 
             let totalDone = 0;
             let totalDefects = 0;
             const totalRooms = FLOORS.length * ROOM_UNITS.length;
 
-            Object.values(window.roomDataStore).forEach(r => {
+            Object.values(roomDataStore).forEach(r => {
                 if (r.overallStatus === 'PASS') totalDone++;
                 if (r.overallStatus === 'DEFECT') {
                     totalDone++;
@@ -1144,7 +1043,7 @@
                 ROOM_UNITS.forEach(u => {
                     const unitStr = u < 10 ? `0${u}` : `${u}`;
                     const roomNo = `${floor}${unitStr}`;
-                    const data = window.roomDataStore[roomNo] || {};
+                    const data = roomDataStore[roomNo] || {};
 
                     let mark = '';
                     let colorClass = '';
