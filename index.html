@@ -1,0 +1,1218 @@
+<!DOCTYPE html>
+<html lang="zh-Hant" class="h-full bg-slate-50">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>the Arca 雅格酒店 - 客房檢查與品質管理系統</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- SheetJS XLSX Library for Excel Export -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#fffbeb',
+                            100: '#fef3c7',
+                            200: '#fde68a',
+                            300: '#fcd34d',
+                            400: '#fbbf24',
+                            500: '#f59e0b',
+                            600: '#d97706',
+                            700: '#b45309',
+                            800: '#92400e',
+                            900: '#78350f',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        
+        @media print {
+            @page { size: A4 portrait; margin: 3mm; }
+            body * { visibility: hidden; }
+            #printArea, #printArea * { visibility: visible; }
+            #printArea { position: absolute; left: 0; top: 0; width: 100%; background: white; font-size: 9px; }
+            .no-print { display: none !important; }
+        }
+        
+        .thick-border-table { border: 2px solid #000 !important; }
+        .thick-border-table th, .thick-border-table td { border: 1px solid #000 !important; }
+    </style>
+</head>
+<body class="h-full font-sans text-slate-800 antialiased flex flex-col">
+
+    <!-- 頂部導航欄 Navbar -->
+    <header class="bg-slate-900 text-white shadow-md sticky top-0 z-30 no-print">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="bg-brand-400 text-slate-950 p-2 rounded-xl font-bold text-xl tracking-wider flex items-center justify-center w-10 h-10 shadow-sm">
+                    <i class="fa-solid fa-hotel"></i>
+                </div>
+                <div>
+                    <h1 class="text-lg font-bold tracking-tight leading-tight flex items-center">
+                        the Arca <span class="text-xs font-normal text-slate-400 ml-2">雅格酒店 客房檢查系統</span>
+                    </h1>
+                    <p class="text-xs text-brand-300 font-medium">Housekeeping Inspection & Quality Control Matrix</p>
+                </div>
+            </div>
+
+            <!-- 功能按鈕區 -->
+            <div class="flex items-center space-x-2">
+                <button type="button" onclick="openInspectorSettingsModal()" class="px-3 py-1.5 text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg border border-slate-700 flex items-center transition">
+                    <i class="fa-solid fa-users-gear mr-1.5 text-amber-400"></i> 設定檢查人員
+                </button>
+                <button type="button" onclick="requestDirectoryAccess()" class="px-3 py-1.5 text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg border border-slate-700 flex items-center transition">
+                    <i class="fa-solid fa-folder-open mr-1.5 text-brand-400"></i>
+                    <span id="btnDirPickerText">連結電腦資料夾</span>
+                </button>
+                <button type="button" onclick="openFolderViewerModal()" class="px-3 py-1.5 text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg border border-slate-700 flex items-center transition">
+                    <i class="fa-solid fa-folder-tree mr-1.5 text-indigo-400"></i> 檢視相冊
+                </button>
+                <button type="button" onclick="exportToExcel()" class="px-3 py-1.5 text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg shadow flex items-center transition">
+                    <i class="fa-solid fa-file-excel mr-1.5 text-sm"></i> Excel
+                </button>
+                <button type="button" onclick="triggerPrint()" class="px-3 py-1.5 text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg shadow flex items-center transition">
+                    <i class="fa-solid fa-print mr-1.5 text-sm"></i> 列印直向 A4
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- 主要內容區 Main Content -->
+    <div class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-5 flex flex-col space-y-5">
+
+        <!-- 頂部專案設定與統計看板 Panel -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 sm:p-5 no-print">
+            <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                
+                <!-- 專案及檢查員參數設定 -->
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 flex-1">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 mb-1">專案 / 主題名稱</label>
+                        <div class="relative">
+                            <i class="fa-solid fa-folder-open absolute left-3 top-2.5 text-slate-400 text-xs"></i>
+                            <input type="text" id="projectTheme" value="2026Q4_深度清潔檢查" onchange="saveProjectSettings()" 
+                                class="w-full pl-8 pr-3 py-1.5 text-sm bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-400 focus:outline-none font-medium text-slate-700">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 mb-1">檢查人員 (預設/當前)</label>
+                        <div class="relative">
+                            <i class="fa-solid fa-user-check absolute left-3 top-2.5 text-slate-400 text-xs"></i>
+                            <select id="inspectorSelect" onchange="saveProjectSettings()"
+                                class="w-full pl-8 pr-3 py-1.5 text-sm bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-400 focus:outline-none font-medium text-slate-700">
+                                <!-- 動態渲染 8 位檢查人員選項 -->
+                            </select>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 mb-1">檢查基準日期</label>
+                        <div class="relative">
+                            <i class="fa-solid fa-calendar-day absolute left-3 top-2.5 text-slate-400 text-xs"></i>
+                            <input type="date" id="inspectionDate" onchange="saveProjectSettings()"
+                                class="w-full pl-8 pr-3 py-1.5 text-sm bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-400 focus:outline-none font-medium text-slate-700">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- KPI 指標面板 -->
+                <div class="flex items-center justify-between sm:justify-end gap-3 pt-3 lg:pt-0 border-t lg:border-t-0 border-slate-100">
+                    <div class="text-center px-3.5 py-1.5 bg-slate-50 rounded-xl border border-slate-200 min-w-[85px]">
+                        <span class="block text-[11px] text-slate-500 font-medium">總客房數</span>
+                        <span id="statTotalRooms" class="text-lg font-extrabold text-slate-800">187</span>
+                    </div>
+                    <div class="text-center px-3.5 py-1.5 bg-emerald-50 rounded-xl border border-emerald-200 min-w-[85px]">
+                        <span class="block text-[11px] text-emerald-700 font-medium">已檢查完成</span>
+                        <span id="statCheckedRooms" class="text-lg font-extrabold text-emerald-600">0</span>
+                    </div>
+                    <div class="text-center px-3.5 py-1.5 bg-rose-50 rounded-xl border border-rose-200 min-w-[85px]">
+                        <span class="block text-[11px] text-rose-700 font-medium">發現瑕疵 (✕)</span>
+                        <span id="statDefectRooms" class="text-lg font-extrabold text-rose-600">0</span>
+                    </div>
+                    <div class="text-center px-3.5 py-1.5 bg-amber-50 rounded-xl border border-amber-200 min-w-[85px]">
+                        <span class="block text-[11px] text-amber-700 font-medium">完成率 %</span>
+                        <span id="statCompletionRate" class="text-lg font-extrabold text-amber-600">0%</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 控制列：篩選與圖例説明 -->
+            <div class="mt-4 pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3 text-xs">
+                <div class="flex flex-wrap items-center gap-2">
+                    <span class="font-bold text-slate-600">圖例狀態:</span>
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded border border-emerald-300 bg-emerald-100 text-emerald-900 font-medium">
+                        <span class="w-2 h-2 rounded-full bg-emerald-600 mr-1.5"></span>合格 (綠色)
+                    </span>
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded border border-rose-300 bg-rose-100 text-rose-900 font-medium">
+                        <i class="fa-solid fa-xmark text-rose-600 mr-1 font-bold"></i>瑕疵 (紅色)
+                    </span>
+                    <span class="inline-flex items-center px-2 py-0.5 rounded border border-slate-200 bg-white text-slate-600">
+                        <span class="w-2 h-2 rounded-full bg-slate-300 mr-1.5"></span>未檢查
+                    </span>
+                </div>
+
+                <div class="flex items-center space-x-3">
+                    <div class="flex items-center space-x-1">
+                        <span class="font-bold text-slate-600">樓層篩選:</span>
+                        <select id="floorFilter" onchange="renderFloorMatrix()" class="bg-slate-50 border border-slate-300 text-xs rounded-md px-2 py-1 focus:outline-none focus:ring-1 focus:ring-brand-400">
+                            <option value="ALL">全部樓層 (17F - 35F)</option>
+                        </select>
+                    </div>
+
+                    <div class="flex items-center space-x-1">
+                        <span class="font-bold text-slate-600">狀態篩選:</span>
+                        <select id="statusFilter" onchange="renderFloorMatrix()" class="bg-slate-50 border border-slate-300 text-xs rounded-md px-2 py-1 focus:outline-none focus:ring-1 focus:ring-brand-400">
+                            <option value="ALL">全部狀態</option>
+                            <option value="PASS">僅顯示合格 (✓)</option>
+                            <option value="DEFECT">僅顯示瑕疵 (✕)</option>
+                            <option value="PENDING">僅顯示未檢查</option>
+                        </select>
+                    </div>
+
+                    <button type="button" onclick="resetAllData()" class="text-slate-400 hover:text-rose-600 text-xs transition ml-2">
+                        <i class="fa-solid fa-rotate-right mr-1"></i>重置測試數據
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 樓層矩陣地圖 Matrix Grid Display -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex-1 flex flex-col no-print">
+            <div class="bg-slate-900 px-5 py-3 text-white font-semibold text-sm flex items-center justify-between">
+                <span class="flex items-center"><i class="fa-solid fa-border-all text-brand-400 mr-2"></i> 客房檢驗總覽矩陣表 (Floor Map Grid)</span>
+                <span class="text-xs font-normal text-slate-400">點擊任意房間卡片可進入檢查、記錄檢查人與上傳照片</span>
+            </div>
+            
+            <div class="p-4 overflow-x-auto flex-1">
+                <div id="matrixContainer" class="space-y-2 min-w-[900px]">
+                    <!-- 樓層數據由 JS 自動渲染 -->
+                </div>
+            </div>
+        </div>
+
+        <!-- 直向 A4 單頁列印區 Print Layout (帶檢查人名字) -->
+        <div id="printArea" class="hidden print:block p-0.5 bg-white text-black font-sans">
+            <div class="border border-black p-1.5">
+                <div class="flex justify-between items-start mb-1 border-b border-black pb-0.5">
+                    <div>
+                        <h1 class="text-sm font-black tracking-widest uppercase">the Arca 雅格酒店</h1>
+                        <p class="text-[8px] font-bold text-slate-700">Housekeeping Floor Inspection Matrix</p>
+                    </div>
+                    <div class="text-right text-[8px] space-y-0 font-medium">
+                        <p><strong>檢查日期:</strong> <span id="printDate">2026-10-24</span></p>
+                        <p><strong>預設檢查員:</strong> <span id="printInspector">Alex Wong</span></p>
+                        <p><strong>主題:</strong> <span id="printTheme">DeepCleaning</span></p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-4 gap-1 text-center text-[8px] border border-black p-0.5 mb-1 bg-slate-100 font-bold">
+                    <div>總客房數: <span id="printTotalRooms">187</span></div>
+                    <div>已檢查完成: <span id="printDone">0</span></div>
+                    <div>完成率 %: <span id="printDonePct">0%</span></div>
+                    <div>瑕疵數 (✕): <span id="printDefects" class="text-rose-700">0</span></div>
+                </div>
+
+                <table class="w-full text-[8.5px] thick-border-table text-center border-collapse">
+                    <thead>
+                        <tr class="bg-slate-200 font-bold border-b border-black">
+                            <th class="p-0.5 w-7 border-r border-black">樓層</th>
+                            <th class="p-0.5">.01</th>
+                            <th class="p-0.5">.02</th>
+                            <th class="p-0.5">.03</th>
+                            <th class="p-0.5">.04</th>
+                            <th class="p-0.5">.05</th>
+                            <th class="p-0.5">.06</th>
+                            <th class="p-0.5">.07</th>
+                            <th class="p-0.5">.08</th>
+                            <th class="p-0.5">.09</th>
+                            <th class="p-0.5">.10</th>
+                            <th class="p-0.5">.11</th>
+                            <th class="p-0.5 w-7 border-l border-black">樓層</th>
+                        </tr>
+                    </thead>
+                    <tbody id="printTableBody"></tbody>
+                </table>
+
+                <div class="mt-0.5 pt-0.5 border-t border-black flex justify-between text-[6.5px] text-slate-600 font-mono">
+                    <span>the Arca Hotel Operations Management System</span>
+                    <span>列印日期：<span id="printGeneratedDate"></span></span>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- 房間檢查彈窗 Room Inspection Modal -->
+    <div id="roomModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3 sm:p-4 no-print overflow-y-auto">
+        <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-2xl overflow-hidden my-auto max-h-[95vh] flex flex-col">
+            
+            <!-- 彈窗 Header -->
+            <div class="bg-slate-900 text-white px-6 py-4 flex items-center justify-between border-b border-slate-800">
+                <div class="flex items-center space-x-3">
+                    <span id="modalRoomBadge" class="bg-brand-400 text-slate-950 font-black text-2xl px-3.5 py-1 rounded-xl shadow-inner">
+                        1701
+                    </span>
+                    <div>
+                        <h3 class="text-base font-bold flex items-center gap-2">
+                            <span>客房檢驗紀錄</span>
+                            <span id="modalRoomStatusBadge" class="text-xs px-2.5 py-0.5 rounded-full font-bold bg-slate-700 text-slate-300">未檢查</span>
+                        </h3>
+                        <p class="text-xs text-slate-400">指派檢查人員、記錄日期與上傳現場相片</p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeRoomModal()" class="text-slate-400 hover:text-white text-xl p-1.5 rounded-xl hover:bg-slate-800 transition">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- 彈窗內容區 -->
+            <div class="p-6 overflow-y-auto space-y-4 flex-1 text-sm">
+                
+                <!-- 房間整體狀態、檢查人員與日期設定 -->
+                <div class="bg-slate-50 rounded-xl p-4 border border-slate-200 space-y-3">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <!-- 檢查人員指定 -->
+                        <div class="flex-1">
+                            <label class="block font-bold text-slate-700 text-xs mb-1">本房檢查人員 (Inspector)</label>
+                            <select id="modalInspectorSelect" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-1.5 text-xs font-medium text-slate-800 focus:outline-none focus:ring-1 focus:ring-brand-400">
+                                <!-- 動態渲染 -->
+                            </select>
+                        </div>
+                        <!-- 檢查日期 -->
+                        <div class="sm:w-48">
+                            <label class="block font-bold text-slate-700 text-xs mb-1">檢查日期 (Date)</label>
+                            <div class="flex items-center space-x-1">
+                                <input type="date" id="modalDateInput" class="w-full bg-white border border-slate-300 rounded-lg px-2 py-1.5 font-mono text-xs text-slate-700 focus:outline-none focus:ring-1 focus:ring-brand-400">
+                                <button type="button" onclick="setModalCurrentDate()" class="text-[10px] bg-slate-200 hover:bg-slate-300 text-slate-700 px-2 py-1.5 rounded transition shrink-0">今天</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 狀態按鈕組 -->
+                    <div class="pt-2 border-t border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <span class="font-bold text-slate-800 text-xs">房間評估狀態:</span>
+                        <div class="flex items-center space-x-2">
+                            <button type="button" onclick="setModalOverallStatus('PASS')" id="btnStatusPass" class="px-4 py-2 text-xs font-extrabold rounded-xl transition-all shadow-sm flex items-center justify-center">
+                                <i class="fa-solid fa-check mr-1.5"></i> 通過 (✓)
+                            </button>
+                            <button type="button" onclick="setModalOverallStatus('DEFECT')" id="btnStatusDefect" class="px-4 py-2 text-xs font-extrabold rounded-xl transition-all shadow-sm flex items-center justify-center">
+                                <i class="fa-solid fa-xmark mr-1.5"></i> 有瑕疵 (✕)
+                            </button>
+                            <button type="button" onclick="setModalOverallStatus('PENDING')" id="btnStatusPending" class="px-3 py-2 text-xs font-bold rounded-xl transition-all shadow-sm flex items-center justify-center">
+                                <i class="fa-solid fa-rotate-left mr-1"></i> 未檢查
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 瑕疵備註與說明 -->
+                <div>
+                    <label class="block font-bold text-slate-800 text-xs mb-1">
+                        <i class="fa-solid fa-pen-to-square text-slate-500 mr-1"></i> 檢查備註 / 瑕疵跟進說明 (Remarks)
+                    </label>
+                    <textarea id="modalNotes" rows="2" placeholder="例如：床單有輕微污漬需更換、浴室花灑水壓偏低..." 
+                        class="w-full text-xs p-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-400 focus:outline-none font-medium"></textarea>
+                </div>
+
+                <!-- 現場拍照與照片上傳區 -->
+                <div class="border-t border-slate-200 pt-3">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-1 mb-2">
+                        <h4 class="font-bold text-slate-800 text-xs flex items-center">
+                            <i class="fa-solid fa-camera text-indigo-500 mr-1.5"></i> 現場相片記錄 (Photo Capture)
+                        </h4>
+                        <span class="text-[10px] text-indigo-700 font-mono font-semibold bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100 truncate max-w-xs" id="modalFolderPath">
+                            [未連結資料夾]
+                        </span>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mb-2">
+                        <!-- 直接拍照按鈕 -->
+                        <div class="border-2 border-dashed border-indigo-300 hover:border-indigo-500 rounded-xl p-2.5 text-center cursor-pointer bg-indigo-50/50 hover:bg-indigo-50 transition relative flex items-center justify-center space-x-2">
+                            <input type="file" accept="image/*" capture="environment" onchange="handlePhotoUpload(event)" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
+                            <i class="fa-solid fa-camera-retro text-xl text-indigo-600"></i>
+                            <div class="text-left">
+                                <span class="block text-xs font-bold text-indigo-900">現場直接拍照</span>
+                                <span class="block text-[9px] text-indigo-600">手機相機拍照</span>
+                            </div>
+                        </div>
+
+                        <!-- 選擇相册檔案按鈕 -->
+                        <div class="border-2 border-dashed border-slate-300 hover:border-brand-400 rounded-xl p-2.5 text-center cursor-pointer bg-slate-50 hover:bg-amber-50/40 transition relative flex items-center justify-center space-x-2">
+                            <input type="file" multiple accept="image/*" onchange="handlePhotoUpload(event)" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
+                            <i class="fa-solid fa-folder-arrow-up text-xl text-slate-500"></i>
+                            <div class="text-left">
+                                <span class="block text-xs font-bold text-slate-700">上傳相册照片</span>
+                                <span class="block text-[9px] text-slate-400">從裝置選取現有圖片</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="photoPreviewContainer" class="grid grid-cols-4 gap-2 mt-2"></div>
+                </div>
+
+            </div>
+
+            <!-- 彈窗 Footer -->
+            <div class="bg-slate-100 px-6 py-3 border-t border-slate-200 flex items-center justify-between">
+                <button type="button" onclick="closeRoomModal()" class="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-200 rounded-xl transition">
+                    取消 (Cancel)
+                </button>
+                <button type="button" onclick="saveRoomData()" class="px-6 py-2 text-xs font-extrabold text-slate-950 bg-brand-400 hover:bg-brand-300 rounded-xl shadow transition flex items-center">
+                    <i class="fa-solid fa-floppy-disk mr-1.5"></i> 儲存房間數據 (Save Room)
+                </button>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- 設定 8 位檢查人員 Modal -->
+    <div id="inspectorSettingsModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 no-print">
+        <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-md overflow-hidden flex flex-col">
+            <div class="bg-slate-900 text-white px-5 py-4 flex items-center justify-between">
+                <h3 class="font-bold text-base flex items-center">
+                    <i class="fa-solid fa-users-gear text-amber-400 mr-2"></i> 設定 8 位檢查人員名單
+                </h3>
+                <button type="button" onclick="closeInspectorSettingsModal()" class="text-slate-400 hover:text-white text-lg">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            
+            <div class="p-5 space-y-3 text-xs" id="inspectorInputsContainer">
+                <!-- 由 JS 動態生成 8 個輸入框 -->
+            </div>
+
+            <div class="bg-slate-100 px-5 py-3 border-t border-slate-200 flex justify-between items-center">
+                <button type="button" onclick="closeInspectorSettingsModal()" class="px-4 py-1.5 text-xs font-bold bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300">取消</button>
+                <button type="button" onclick="saveInspectorList()" class="px-4 py-1.5 text-xs font-bold bg-brand-500 hover:bg-brand-400 text-slate-950 rounded-lg shadow">儲存名單</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 檢視相冊檔案樹 Modal -->
+    <div id="folderModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 no-print">
+        <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-2xl overflow-hidden flex flex-col max-h-[85vh]">
+            <div class="bg-slate-900 text-white px-5 py-4 flex items-center justify-between">
+                <h3 class="font-bold text-base flex items-center">
+                    <i class="fa-solid fa-folder-tree text-indigo-400 mr-2"></i> 相冊目錄結構與批次建立腳本
+                </h3>
+                <button type="button" onclick="closeFolderModal()" class="text-slate-400 hover:text-white text-lg">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            
+            <div class="p-5 overflow-y-auto flex-1 font-mono text-xs text-slate-700 space-y-2" id="folderTreeContent"></div>
+
+            <div class="bg-slate-100 px-5 py-3 border-t border-slate-200 flex justify-between items-center">
+                <button type="button" onclick="generateFolderScript()" class="px-3.5 py-1.5 text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg flex items-center">
+                    <i class="fa-solid fa-terminal mr-1.5"></i> 複製 PowerShell 建置資料夾腳本
+                </button>
+                <button type="button" onclick="closeFolderModal()" class="px-4 py-1.5 text-xs font-bold bg-slate-800 text-white rounded-lg">關閉</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast 提示 Message Box -->
+    <div id="toast" class="fixed bottom-5 right-5 bg-slate-900 text-white px-4 py-3 rounded-2xl shadow-2xl border border-slate-700 text-xs flex items-center space-x-2.5 transform translate-y-20 opacity-0 transition-all duration-300 z-50">
+        <i id="toastIcon" class="fa-solid fa-circle-check text-emerald-400 text-base"></i>
+        <span id="toastMsg" class="font-medium">數據已成功儲存</span>
+    </div>
+
+    <!-- 核心腳本 -->
+    <script>
+        const FLOORS = [35, 33, 32, 31, 30, 29, 28, 27, 26, 25, 23, 22, 21, 20, 19, 18, 17];
+        const ROOM_UNITS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
+
+        let roomDataStore = {};
+        let currentEditingRoom = null;
+        let rootDirectoryHandle = null;
+
+        // 預設 8 位檢查人員名單
+        let defaultInspectors = [
+            "陳大文 Alex (房務主管)",
+            "李小明 David (資深督導)",
+            "張美儀 Mary (主管)",
+            "王偉強 John (高級檢查員)",
+            "周秀蘭 Susan (督導)",
+            "林志豪 Peter (檢查員)",
+            "黃麗萍 Nancy (房務經理)",
+            "何家輝 Kelvin (品質專員)"
+        ];
+
+        let tempModalState = {
+            overallStatus: 'PENDING',
+            photos: []
+        };
+
+        let projectConfig = {
+            theme: '2026Q4_深度清潔檢查',
+            inspector: '陳大文 Alex (房務主管)',
+            date: new Date().toISOString().split('T')[0],
+            inspectorsList: [...defaultInspectors]
+        };
+
+        window.onload = function() {
+            loadStoredData();
+            initProjectFields();
+            populateInspectorSelect();
+            populateFloorFilter();
+            renderFloorMatrix();
+            updateKPIs();
+        };
+
+        function initProjectFields() {
+            document.getElementById('projectTheme').value = projectConfig.theme;
+            document.getElementById('inspectionDate').value = projectConfig.date;
+        }
+
+        function populateInspectorSelect() {
+            const selectEl = document.getElementById('inspectorSelect');
+            const modalSelectEl = document.getElementById('modalInspectorSelect');
+            const list = projectConfig.inspectorsList || defaultInspectors;
+
+            selectEl.innerHTML = '';
+            modalSelectEl.innerHTML = '';
+
+            list.forEach(name => {
+                if (name && name.trim() !== '') {
+                    const opt1 = document.createElement('option');
+                    opt1.value = name;
+                    opt1.textContent = name;
+                    if (name === projectConfig.inspector) opt1.selected = true;
+                    selectEl.appendChild(opt1);
+
+                    const opt2 = document.createElement('option');
+                    opt2.value = name;
+                    opt2.textContent = name;
+                    modalSelectEl.appendChild(opt2);
+                }
+            });
+
+            if (!selectEl.value && list.length > 0) {
+                projectConfig.inspector = list[0];
+                selectEl.value = list[0];
+            }
+        }
+
+        function saveProjectSettings() {
+            projectConfig.theme = document.getElementById('projectTheme').value.trim() || 'General_Inspection';
+            projectConfig.inspector = document.getElementById('inspectorSelect').value;
+            projectConfig.date = document.getElementById('inspectionDate').value || new Date().toISOString().split('T')[0];
+            localStorage.setItem('arca_hskp_config_v5', JSON.stringify(projectConfig));
+            showToast('專案設定已更新');
+            if (currentEditingRoom) updateModalFolderPathLabel(currentEditingRoom);
+        }
+
+        function openInspectorSettingsModal() {
+            const container = document.getElementById('inspectorInputsContainer');
+            container.innerHTML = '';
+            const list = projectConfig.inspectorsList || defaultInspectors;
+
+            for (let i = 0; i < 8; i++) {
+                const val = list[i] || '';
+                const div = document.createElement('div');
+                div.className = 'flex items-center space-x-2';
+                div.innerHTML = `
+                    <span class="w-16 font-bold text-slate-500">人員 #${i+1}:</span>
+                    <input type="text" id="inspectorInput_${i}" value="${val}" placeholder="請輸入姓名與職稱" 
+                        class="flex-1 px-3 py-1.5 bg-slate-50 border border-slate-300 rounded-lg text-xs focus:ring-1 focus:ring-brand-400 focus:outline-none">
+                `;
+                container.appendChild(div);
+            }
+            document.getElementById('inspectorSettingsModal').classList.remove('hidden');
+        }
+
+        function closeInspectorSettingsModal() {
+            document.getElementById('inspectorSettingsModal').classList.add('hidden');
+        }
+
+        function saveInspectorList() {
+            const newList = [];
+            for (let i = 0; i < 8; i++) {
+                const val = document.getElementById(`inspectorInput_${i}`).value.trim();
+                if (val) newList.push(val);
+            }
+            if (newList.length === 0) {
+                alert('請至少輸入一位檢查人員！');
+                return;
+            }
+            projectConfig.inspectorsList = newList;
+            if (!newList.includes(projectConfig.inspector)) {
+                projectConfig.inspector = newList[0];
+            }
+            localStorage.setItem('arca_hskp_config_v5', JSON.stringify(projectConfig));
+            populateInspectorSelect();
+            closeInspectorSettingsModal();
+            showToast('檢查人員名單已更新');
+        }
+
+        function loadStoredData() {
+            const savedConfig = localStorage.getItem('arca_hskp_config_v5');
+            if (savedConfig) {
+                try { projectConfig = JSON.parse(savedConfig); } catch(e){}
+            }
+
+            const savedRooms = localStorage.getItem('arca_hskp_rooms_v5');
+            if (savedRooms) {
+                try { roomDataStore = JSON.parse(savedRooms); } catch(e){}
+            } else {
+                seedSampleData();
+            }
+        }
+
+        function seedSampleData() {
+            const samplePassed = ['1701', '1704', '1902', '2004', '2605', '2610', '2902', '2909', '3008', '3306', '3307', '3308', '3511'];
+            const sampleDefects = ['1803', '2202', '2508'];
+            const todayStr = new Date().toISOString().split('T')[0];
+
+            samplePassed.forEach((rm) => {
+                roomDataStore[rm] = {
+                    overallStatus: 'PASS',
+                    notes: '標準清潔完成，符合規範。',
+                    date: todayStr,
+                    inspector: projectConfig.inspector,
+                    photoNames: []
+                };
+            });
+
+            sampleDefects.forEach((rm) => {
+                roomDataStore[rm] = {
+                    overallStatus: 'DEFECT',
+                    notes: '浴室鏡面有水漬，床頭櫃未除塵。',
+                    date: todayStr,
+                    inspector: projectConfig.inspector,
+                    photoNames: []
+                };
+            });
+
+            saveRoomStore();
+        }
+
+        function saveRoomStore() {
+            try {
+                const lightStore = {};
+                Object.keys(roomDataStore).forEach(rm => {
+                    const r = roomDataStore[rm];
+                    lightStore[rm] = {
+                        overallStatus: r.overallStatus,
+                        notes: r.notes,
+                        date: r.date,
+                        inspector: r.inspector,
+                        photoNames: r.photos ? r.photos.map(p => p.filename) : (r.photoNames || [])
+                    };
+                });
+                localStorage.setItem('arca_hskp_rooms_v5', JSON.stringify(lightStore));
+            } catch(e) {
+                console.error("儲存失敗:", e);
+            }
+        }
+
+        function populateFloorFilter() {
+            const filterEl = document.getElementById('floorFilter');
+            filterEl.innerHTML = '<option value="ALL">全部樓層 (17F - 35F)</option>';
+            FLOORS.forEach(f => {
+                const opt = document.createElement('option');
+                opt.value = f;
+                opt.textContent = `${f}F 樓層`;
+                filterEl.appendChild(opt);
+            });
+        }
+
+        // 優化防呆：確保點擊連結資料夾時有彈窗異常捕捉與相容性提示
+        async function requestDirectoryAccess() {
+            if (!('showDirectoryPicker' in window)) {
+                alert('您的瀏覽器不支援本機/網絡資料夾存取 API（請使用 Google Chrome 或 Microsoft Edge 瀏覽器）。');
+                return;
+            }
+
+            try {
+                rootDirectoryHandle = await window.showDirectoryPicker();
+                const safeTheme = sanitizeFolderName(projectConfig.theme);
+                await rootDirectoryHandle.getDirectoryHandle(safeTheme, { create: true });
+
+                document.getElementById('btnDirPickerText').textContent = `已連結: ${rootDirectoryHandle.name}`;
+                showToast(`已成功連結資料夾並確認專案目錄: ${rootDirectoryHandle.name}\\${safeTheme}`);
+                if (currentEditingRoom) updateModalFolderPathLabel(currentEditingRoom);
+            } catch (err) {
+                if (err.name !== 'AbortError') {
+                    console.error(err);
+                    alert('連結資料夾失敗或權限被拒絕。請確認是否使用支援的瀏覽器並授予存取權限。');
+                }
+            }
+        }
+
+        function sanitizeFolderName(name) {
+            return name.replace(/[<>:"/\\|?*]/g, '_').trim() || 'Project_Folder';
+        }
+
+        async function savePhotoToPhysicalDirectory(theme, roomNo, fileName, base64Data) {
+            if (!rootDirectoryHandle) return;
+            try {
+                const safeTheme = sanitizeFolderName(theme);
+                const themeDir = await rootDirectoryHandle.getDirectoryHandle(safeTheme, { create: true });
+                const roomDir = await themeDir.getDirectoryHandle(roomNo, { create: true });
+                const fileHandle = await roomDir.getFileHandle(fileName, { create: true });
+                
+                const res = await fetch(base64Data);
+                const blob = await res.blob();
+
+                const writable = await fileHandle.createWritable();
+                await writable.write(blob);
+                await writable.close();
+            } catch (err) {
+                console.error('檔案寫入本機/網絡資料夾時出錯:', err);
+            }
+        }
+
+        function renderFloorMatrix() {
+            const container = document.getElementById('matrixContainer');
+            const selectedFloor = document.getElementById('floorFilter').value;
+            const selectedStatus = document.getElementById('statusFilter').value;
+            container.innerHTML = '';
+
+            const floorsToRender = selectedFloor === 'ALL' ? FLOORS : [parseInt(selectedFloor)];
+
+            floorsToRender.forEach(floor => {
+                const row = document.createElement('div');
+                row.className = 'flex items-center space-x-2 bg-slate-50 p-1.5 rounded-xl border border-slate-200 hover:border-slate-300 transition';
+
+                const floorBadge = document.createElement('div');
+                floorBadge.className = 'w-12 h-14 bg-slate-900 text-white font-black text-xs rounded-lg flex items-center justify-center shrink-0 shadow-sm';
+                floorBadge.textContent = `${floor}F`;
+                row.appendChild(floorBadge);
+
+                const roomGrid = document.createElement('div');
+                roomGrid.className = 'grid grid-cols-11 gap-1.5 flex-1';
+
+                ROOM_UNITS.forEach(unit => {
+                    const unitStr = unit < 10 ? `0${unit}` : `${unit}`;
+                    const roomNo = `${floor}${unitStr}`;
+                    const roomData = roomDataStore[roomNo] || { overallStatus: 'PENDING' };
+
+                    if (selectedStatus !== 'ALL' && roomData.overallStatus !== selectedStatus) {
+                        const emptySlot = document.createElement('div');
+                        emptySlot.className = 'opacity-20 border border-dashed border-slate-200 rounded-lg h-14';
+                        roomGrid.appendChild(emptySlot);
+                        return;
+                    }
+
+                    const roomCard = document.createElement('button');
+                    roomCard.type = 'button';
+                    roomCard.onclick = () => openRoomModal(roomNo);
+
+                    let bgClasses = 'bg-white border-slate-200 text-slate-700 hover:border-brand-400';
+                    let statusIcon = '<span class="w-1.5 h-1.5 rounded-full bg-slate-300"></span>';
+
+                    if (roomData.overallStatus === 'PASS') {
+                        bgClasses = 'bg-emerald-100 border-emerald-400 text-emerald-950 font-bold shadow-sm hover:bg-emerald-200';
+                        statusIcon = '<i class="fa-solid fa-check text-[11px] text-emerald-700 font-black"></i>';
+                    } else if (roomData.overallStatus === 'DEFECT') {
+                        bgClasses = 'bg-rose-100 border-rose-400 text-rose-950 font-bold shadow-sm hover:bg-rose-200';
+                        statusIcon = '<i class="fa-solid fa-xmark text-[11px] text-rose-600 font-black"></i>';
+                    }
+
+                    let inspectorShort = '';
+                    if (roomData.inspector) {
+                        inspectorShort = roomData.inspector.split(' ')[0];
+                    }
+
+                    const hasPhotos = (roomData.photos && roomData.photos.length > 0) || (roomData.photoNames && roomData.photoNames.length > 0);
+
+                    roomCard.className = `p-1.5 rounded-lg border text-left flex flex-col justify-between h-14 transition duration-150 ${bgClasses}`;
+                    roomCard.innerHTML = `
+                        <div class="flex items-center justify-between w-full text-xs leading-none">
+                            <span class="font-bold tracking-tight">${roomNo}</span>
+                            ${statusIcon}
+                        </div>
+                        <div class="text-[9px] text-indigo-700 font-semibold truncate leading-none mt-0.5" title="${roomData.inspector || ''}">
+                            ${inspectorShort || '<span class="text-slate-400">未指定</span>'}
+                        </div>
+                        <div class="flex items-center justify-between text-[8px] text-slate-500 font-mono leading-none mt-0.5">
+                            <span>${roomData.date ? roomData.date.substring(5) : ''}</span>
+                            <span>${hasPhotos ? '<i class="fa-solid fa-camera text-indigo-500"></i>' : ''}</span>
+                        </div>
+                    `;
+
+                    roomGrid.appendChild(roomCard);
+                });
+
+                row.appendChild(roomGrid);
+                container.appendChild(row);
+            });
+
+            updateKPIs();
+        }
+
+        function updateKPIs() {
+            const total = FLOORS.length * ROOM_UNITS.length;
+            let done = 0;
+            let defects = 0;
+
+            Object.values(roomDataStore).forEach(r => {
+                if (r.overallStatus === 'PASS') done++;
+                if (r.overallStatus === 'DEFECT') {
+                    done++;
+                    defects++;
+                }
+            });
+
+            const rate = Math.round((done / total) * 100);
+
+            document.getElementById('statTotalRooms').textContent = total;
+            document.getElementById('statCheckedRooms').textContent = done;
+            document.getElementById('statDefectRooms').textContent = defects;
+            document.getElementById('statCompletionRate').textContent = `${rate}%`;
+        }
+
+        function openRoomModal(roomNo) {
+            currentEditingRoom = roomNo;
+            const data = roomDataStore[roomNo] || {
+                overallStatus: 'PENDING',
+                notes: '',
+                date: new Date().toISOString().split('T')[0],
+                inspector: projectConfig.inspector,
+                photos: [],
+                photoNames: []
+            };
+
+            tempModalState = {
+                overallStatus: data.overallStatus || 'PENDING',
+                photos: data.photos ? [...data.photos] : [],
+                photoNames: data.photoNames ? [...data.photoNames] : []
+            };
+
+            document.getElementById('modalRoomBadge').textContent = roomNo;
+            document.getElementById('modalNotes').value = data.notes || '';
+            document.getElementById('modalDateInput').value = data.date || new Date().toISOString().split('T')[0];
+            document.getElementById('modalInspectorSelect').value = data.inspector || projectConfig.inspector;
+
+            updateModalFolderPathLabel(roomNo);
+            updateModalStatusButtons(tempModalState.overallStatus);
+            renderPhotoPreviews(tempModalState.photos);
+
+            document.getElementById('roomModal').classList.remove('hidden');
+        }
+
+        function closeRoomModal() {
+            document.getElementById('roomModal').classList.add('hidden');
+            currentEditingRoom = null;
+        }
+
+        function setModalCurrentDate() {
+            document.getElementById('modalDateInput').value = new Date().toISOString().split('T')[0];
+        }
+
+        function updateModalFolderPathLabel(roomNo) {
+            const rootName = rootDirectoryHandle ? rootDirectoryHandle.name : '[未連結資料夾]';
+            const theme = sanitizeFolderName(projectConfig.theme);
+            document.getElementById('modalFolderPath').textContent = `${rootName} \\ ${theme} \\ ${roomNo} \\`;
+        }
+
+        function setModalOverallStatus(status) {
+            tempModalState.overallStatus = status;
+            updateModalStatusButtons(status);
+        }
+
+        function updateModalStatusButtons(status) {
+            const btnPass = document.getElementById('btnStatusPass');
+            const btnDefect = document.getElementById('btnStatusDefect');
+            const btnPending = document.getElementById('btnStatusPending');
+            const badge = document.getElementById('modalRoomStatusBadge');
+
+            btnPass.className = "px-4 py-2 text-xs font-extrabold rounded-xl border transition-all shadow flex items-center justify-center " + 
+                (status === 'PASS' 
+                    ? "bg-emerald-600 border-emerald-600 text-white ring-2 ring-emerald-300 shadow-emerald-200 scale-105" 
+                    : "bg-emerald-600 border-emerald-600 text-white/80 opacity-60 hover:opacity-100");
+            
+            btnDefect.className = "px-4 py-2 text-xs font-extrabold rounded-xl border transition-all shadow flex items-center justify-center " + 
+                (status === 'DEFECT' 
+                    ? "bg-rose-600 border-rose-600 text-white ring-2 ring-rose-300 shadow-rose-200 scale-105" 
+                    : "bg-rose-600 border-rose-600 text-white/80 opacity-60 hover:opacity-100");
+
+            btnPending.className = "px-3 py-2 text-xs font-bold rounded-xl border transition-all flex items-center justify-center " + 
+                (status === 'PENDING' 
+                    ? "bg-slate-700 border-slate-700 text-white shadow-md ring-2 ring-slate-400" 
+                    : "border-slate-300 bg-slate-100 text-slate-600 hover:bg-slate-200");
+
+            badge.textContent = status === 'PASS' ? '✓ 合格通過' : status === 'DEFECT' ? '✕ 發現瑕疵' : '未檢查';
+            badge.className = `text-xs px-2.5 py-0.5 rounded-full font-bold ${status === 'PASS' ? 'bg-emerald-600 text-white' : status === 'DEFECT' ? 'bg-rose-600 text-white' : 'bg-slate-700 text-slate-300'}`;
+        }
+
+        function compressImage(file, callback) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    const canvas = document.createElement('canvas');
+                    let width = img.width;
+                    let height = img.height;
+                    const maxDim = 1024;
+
+                    if (width > maxDim || height > maxDim) {
+                        if (width > height) {
+                            height = Math.round((height * maxDim) / width);
+                            width = maxDim;
+                        } else {
+                            width = Math.round((width * maxDim) / height);
+                            height = maxDim;
+                        }
+                    }
+
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+
+                    const compressedBase64 = canvas.toDataURL('image/jpeg', 0.75);
+                    callback(compressedBase64);
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function handlePhotoUpload(e) {
+            const files = e.target.files;
+            if (!files || !files.length || !currentEditingRoom) return;
+
+            Array.from(files).forEach(file => {
+                compressImage(file, function(compressedBase64) {
+                    const photoObj = {
+                        id: Date.now() + Math.random().toString(36).substring(2, 5),
+                        filename: file.name || `photo_${Date.now()}.jpg`,
+                        size: (compressedBase64.length / 1024).toFixed(1) + ' KB',
+                        dataUrl: compressedBase64
+                    };
+
+                    tempModalState.photos.push(photoObj);
+                    renderPhotoPreviews(tempModalState.photos);
+                });
+            });
+
+            showToast('相片已成功加入並進行壓縮處理');
+        }
+
+        function renderPhotoPreviews(photos) {
+            const container = document.getElementById('photoPreviewContainer');
+            container.innerHTML = '';
+
+            if (!photos || !photos.length) {
+                container.innerHTML = `<div class="col-span-full text-center text-xs text-slate-400 py-2">尚未上傳或拍攝任何相片</div>`;
+                return;
+            }
+
+            photos.forEach((p, idx) => {
+                const card = document.createElement('div');
+                card.className = 'relative group rounded-lg overflow-hidden border border-slate-200 bg-slate-100 aspect-square shadow-sm';
+                card.innerHTML = `
+                    <img src="${p.dataUrl}" class="w-full h-full object-cover">
+                    <div class="absolute inset-0 bg-slate-900/60 opacity-0 group-hover:opacity-100 transition flex flex-col justify-between p-1.5 text-white text-[9px]">
+                        <span class="truncate font-mono">${p.filename}</span>
+                        <button type="button" onclick="removePhoto(${idx})" class="bg-rose-600 hover:bg-rose-700 text-white p-1 rounded text-center self-end">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function removePhoto(idx) {
+            tempModalState.photos.splice(idx, 1);
+            renderPhotoPreviews(tempModalState.photos);
+        }
+
+        async function saveRoomData() {
+            if (!currentEditingRoom) return;
+
+            const notes = document.getElementById('modalNotes').value.trim();
+            const dateVal = document.getElementById('modalDateInput').value || new Date().toISOString().split('T')[0];
+            const inspectorVal = document.getElementById('modalInspectorSelect').value;
+
+            roomDataStore[currentEditingRoom] = {
+                overallStatus: tempModalState.overallStatus,
+                notes: notes,
+                date: dateVal,
+                inspector: inspectorVal,
+                photos: [...tempModalState.photos],
+                photoNames: tempModalState.photos.map(p => p.filename)
+            };
+
+            if (rootDirectoryHandle) {
+                for (const p of tempModalState.photos) {
+                    await savePhotoToPhysicalDirectory(projectConfig.theme, currentEditingRoom, p.filename, p.dataUrl);
+                }
+            }
+
+            saveRoomStore();
+            renderFloorMatrix();
+            closeRoomModal();
+
+            showToast(`✅ 房間 ${currentEditingRoom} 數據已成功儲存！`);
+        }
+
+        function resetAllData() {
+            if (confirm('確定要重置所有房間的檢查記錄嗎？')) {
+                roomDataStore = {};
+                saveRoomStore();
+                renderFloorMatrix();
+                showToast('已重置所有資料為初始狀態');
+            }
+        }
+
+        function openFolderViewerModal() {
+            const treeContainer = document.getElementById('folderTreeContent');
+            const rootName = rootDirectoryHandle ? rootDirectoryHandle.name : '[未連結網絡/電腦資料夾]';
+            const theme = sanitizeFolderName(projectConfig.theme);
+
+            let html = `
+                <div class="flex items-center text-amber-600 font-bold mb-2">
+                    <i class="fa-solid fa-folder-open text-base mr-2"></i> ${rootName} \\ ${theme} \\
+                </div>
+            `;
+
+            let hasPhotos = false;
+            Object.keys(roomDataStore).forEach(roomNo => {
+                const photos = roomDataStore[roomNo].photos || [];
+                const photoNames = roomDataStore[roomNo].photoNames || [];
+                const totalCount = photos.length > 0 ? photos.length : photoNames.length;
+
+                if (totalCount > 0) {
+                    hasPhotos = true;
+                    html += `
+                        <div class="ml-4 my-1.5">
+                            <div class="flex items-center text-slate-800 font-bold">
+                                <i class="fa-solid fa-folder text-amber-500 mr-2"></i> Room_${roomNo}\\
+                            </div>
+                            <div class="ml-6 space-y-1 mt-1">
+                    `;
+                    if (photos.length > 0) {
+                        photos.forEach(p => {
+                            html += `
+                                <div class="flex items-center text-slate-600 hover:text-slate-900 transition">
+                                    <i class="fa-solid fa-file-image text-indigo-500 mr-2"></i>
+                                    <span class="truncate max-w-xs">${p.filename}</span>
+                                    <span class="ml-auto text-[10px] text-slate-400 font-sans">${p.size || ''}</span>
+                                </div>
+                            `;
+                        });
+                    } else {
+                        photoNames.forEach(name => {
+                            html += `
+                                <div class="flex items-center text-slate-600 transition">
+                                    <i class="fa-solid fa-file-image text-indigo-500 mr-2"></i>
+                                    <span class="truncate max-w-xs">${name}</span>
+                                </div>
+                            `;
+                        });
+                    }
+                    html += `</div></div>`;
+                }
+            });
+
+            if (!hasPhotos) {
+                html += `<div class="ml-4 text-slate-400 italic">（目前尚未上傳或拍攝任何相片）</div>`;
+            }
+
+            treeContainer.innerHTML = html;
+            document.getElementById('folderModal').classList.remove('hidden');
+        }
+
+        function closeFolderModal() {
+            document.getElementById('folderModal').classList.add('hidden');
+        }
+
+        function generateFolderScript() {
+            const theme = sanitizeFolderName(projectConfig.theme);
+            let script = `# PowerShell script to create directories for photos\n`;
+            script += `New-Item -ItemType Directory -Force -Path ".\\${theme}"\n`;
+
+            FLOORS.forEach(f => {
+                ROOM_UNITS.forEach(u => {
+                    const unitStr = u < 10 ? `0${u}` : `${u}`;
+                    const rm = `${f}${unitStr}`;
+                    script += `New-Item -ItemType Directory -Force -Path ".\\${theme}\\${rm}"\n`;
+                });
+            });
+
+            const tempInput = document.createElement('textarea');
+            tempInput.value = script;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            document.execCommand('copy');
+            document.body.removeChild(tempInput);
+
+            showToast('已將建置資料夾的 PowerShell 指令複製到剪貼簿！');
+        }
+
+        function exportToExcel() {
+            const dateStr = projectConfig.date;
+            const inspector = projectConfig.inspector;
+            const theme = projectConfig.theme;
+
+            let totalDone = 0;
+            let totalDefects = 0;
+            const totalRooms = FLOORS.length * ROOM_UNITS.length;
+
+            Object.values(roomDataStore).forEach(r => {
+                if (r.overallStatus === 'PASS') totalDone++;
+                if (r.overallStatus === 'DEFECT') {
+                    totalDone++;
+                    totalDefects++;
+                }
+            });
+
+            const donePct = Math.round((totalDone / totalRooms) * 100) + '%';
+            const wsData = [];
+
+            wsData.push(["the Arca 雅格酒店 - 客房檢查矩陣表"]);
+            wsData.push(["Inspection Date:", dateStr, "", "", "Total room done", "Total room done %", "Defects"]);
+            wsData.push(["Inspector:", inspector, "", "", totalDone, donePct, totalDefects]);
+            wsData.push(["Project Theme:", theme]);
+            wsData.push([]); 
+
+            const headerRow = ["Floor", ".01", ".02", ".03", ".04", ".05", ".06", ".07", ".08", ".09", ".10", ".11", "Floor"];
+            wsData.push(headerRow);
+
+            FLOORS.forEach(floor => {
+                const roomHeaderRow = [`${floor}F`];
+                const statusValueRow = [`${floor}F`];
+
+                ROOM_UNITS.forEach(unit => {
+                    const unitStr = unit < 10 ? `0${unit}` : `${unit}`;
+                    const roomNo = `${floor}${unitStr}`;
+                    const data = roomDataStore[roomNo] || {};
+
+                    roomHeaderRow.push(unit);
+
+                    let val = "";
+                    const dateMark = data.date ? `${data.date}` : '';
+                    const inspMark = data.inspector ? `(${data.inspector.split(' ')[0]})` : '';
+                    if (data.overallStatus === 'PASS') val = `✓ ${inspMark} [${dateMark}]`;
+                    else if (data.overallStatus === 'DEFECT') val = `✕ ${inspMark} [${dateMark}]`;
+                    
+                    statusValueRow.push(val);
+                });
+
+                roomHeaderRow.push(`${floor}F`);
+                statusValueRow.push(`${floor}F`);
+
+                wsData.push(roomHeaderRow);
+                wsData.push(statusValueRow);
+            });
+
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.aoa_to_sheet(wsData);
+
+            ws['!cols'] = [
+                { wch: 10 }, { wch: 18 }, { wch: 18 }, { wch: 18 }, { wch: 18 },
+                { wch: 18 }, { wch: 18 }, { wch: 18 }, { wch: 18 }, { wch: 18 },
+                { wch: 18 }, { wch: 18 }, { wch: 10 }
+            ];
+
+            XLSX.utils.book_append_sheet(wb, ws, "Inspection Matrix");
+            XLSX.writeFile(wb, `theArca_Inspection_${sanitizeFolderName(theme)}_${dateStr}.xlsx`);
+
+            showToast("Excel (.xlsx) 報表匯出成功！");
+        }
+
+        function triggerPrint() {
+            document.getElementById('printDate').textContent = projectConfig.date;
+            document.getElementById('printInspector').textContent = projectConfig.inspector;
+            document.getElementById('printTheme').textContent = projectConfig.theme;
+            document.getElementById('printGeneratedDate').textContent = new Date().toLocaleDateString('zh-HK');
+
+            let totalDone = 0;
+            let totalDefects = 0;
+            const totalRooms = FLOORS.length * ROOM_UNITS.length;
+
+            Object.values(roomDataStore).forEach(r => {
+                if (r.overallStatus === 'PASS') totalDone++;
+                if (r.overallStatus === 'DEFECT') {
+                    totalDone++;
+                    totalDefects++;
+                }
+            });
+
+            document.getElementById('printDone').textContent = totalDone;
+            document.getElementById('printDonePct').textContent = Math.round((totalDone / totalRooms) * 100) + '%';
+            document.getElementById('printDefects').textContent = totalDefects;
+
+            const tbody = document.getElementById('printTableBody');
+            tbody.innerHTML = '';
+
+            FLOORS.forEach(floor => {
+                const trHeader = document.createElement('tr');
+                trHeader.className = "bg-amber-100 font-bold border-t border-black";
+
+                let rowHtml = `<td rowspan="2" class="border border-black p-0.5 font-bold bg-slate-200 text-[8px] align-middle">${floor}F</td>`;
+
+                ROOM_UNITS.forEach(u => {
+                    rowHtml += `<td class="border border-black p-0.5 font-bold text-center bg-amber-100 text-[9px]">${u}</td>`;
+                });
+
+                rowHtml += `<td rowspan="2" class="border border-black p-0.5 font-bold bg-slate-200 text-[8px] align-middle">${floor}F</td>`;
+                trHeader.innerHTML = rowHtml;
+                tbody.appendChild(trHeader);
+
+                const trStatus = document.createElement('tr');
+                trStatus.className = "border-b border-black";
+
+                let sHtml = '';
+                ROOM_UNITS.forEach(u => {
+                    const unitStr = u < 10 ? `0${u}` : `${u}`;
+                    const roomNo = `${floor}${unitStr}`;
+                    const data = roomDataStore[roomNo] || {};
+
+                    let mark = '';
+                    let colorClass = '';
+                    if (data.overallStatus === 'PASS') {
+                        mark = '✓';
+                        colorClass = 'text-emerald-700 font-black';
+                    } else if (data.overallStatus === 'DEFECT') {
+                        mark = '✕';
+                        colorClass = 'text-rose-600 font-black';
+                    }
+
+                    let inspShort = '';
+                    if (data.inspector) {
+                        inspShort = data.inspector.split(' ')[0];
+                    }
+
+                    sHtml += `
+                        <td class="border border-black p-0.5 h-7 text-center align-middle">
+                            <div class="leading-none text-xs ${colorClass}">${mark}</div>
+                            <div class="text-[6px] text-indigo-800 font-bold leading-tight mt-0.5 truncate">${inspShort}</div>
+                            <div class="text-[5.5px] text-slate-500 font-mono leading-tight">${data.date ? data.date.substring(5) : ''}</div>
+                        </td>
+                    `;
+                });
+
+                trStatus.innerHTML = sHtml;
+                tbody.appendChild(trStatus);
+            });
+
+            window.print();
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toastMsg').textContent = msg;
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
